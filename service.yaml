@@ -1,0 +1,25 @@
+# service.yaml
+# Defines a Service to expose your Python application.
+apiVersion: v1
+kind: Service
+metadata:
+  # Name of the service.
+  name: python-ci-cd-app-service
+  labels:
+    app: python-ci-cd-app
+spec:
+  # Selects pods with the label 'app: python-ci-cd-app'.
+  selector:
+    app: python-ci-cd-app
+  # Type of service. NodePort exposes the service on a port on each Node's IP.
+  type: NodePort
+  ports:
+    - protocol: TCP
+      # The port on the service.
+      port: 80
+      # The target port on the container.
+      targetPort: 5000
+      # The port on the node's IP address where the service is exposed.
+      # Kubernetes will assign a port in the 30000-32767 range if not specified.
+      # You can specify one, e.g., nodePort: 30000, but often it's better to let K8s choose.
+      nodePort: 30000 # Example: You can choose a specific port, or omit to let K8s assign

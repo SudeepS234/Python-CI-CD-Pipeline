@@ -1,0 +1,47 @@
+# deployment.yaml
+# Defines a Deployment for your Python application in Kubernetes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Name of the deployment.
+  name: python-ci-cd-app-deployment
+  labels:
+    app: python-ci-cd-app
+spec:
+  # Number of desired replicas (instances) of your application.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-ci-cd-app
+  template:
+    metadata:
+      labels:
+        app: python-ci-cd-app
+    spec:
+      containers:
+      - name: python-ci-cd-app-container
+        # The Docker image to use.
+        # 'python-ci-cd-app:latest' refers to the image built by Docker.
+        # 'imagePullPolicy: IfNotPresent' tells Kubernetes to use the local image
+        # if it exists, which is important for Minikube's Docker daemon.
+        image: python-ci-cd-app:latest
+        imagePullPolicy: IfNotPresent
+        # Port that the container exposes.
+        ports:
+        - containerPort: 5000
+        # Liveness probe: Checks if the container is still running.
+        # If it fails, Kubernetes restarts the container.
+        livenessProbe:
+          httpGet:
+            path: /health # Endpoint for health check
+            port: 5000
+          initialDelaySeconds: 5 # Wait 5 seconds before first probe
+          periodSeconds: 5     # Check every 5 seconds
+        # Readiness probe: Checks if the container is ready to serve traffic.
+        # If it fails, Kubernetes stops sending traffic to this container.
+        readinessProbe:
+          httpGet:
+            path: /health # Endpoint for health check
+            port: 5000
+          initialDelaySeconds: 5 # Wait 5 seconds before first probe
+          periodSeconds: 5     # Check every 5 seconds
