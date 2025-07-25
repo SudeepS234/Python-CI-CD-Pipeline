@@ -34,9 +34,8 @@ pipeline {
                     // Create a virtual environment
                     sh 'python3 -m venv "${VENV_PATH}"'
                     // Activate the virtual environment and then install dependencies.
-                    // The 'source' command is for bash/zsh. For sh, it's often just '.'
-                    // We need to ensure the virtual environment's pip is used.
-                    sh 'source "${VENV_PATH}/bin/activate" && pip install -r requirements.txt'
+                    // We explicitly use 'bash -c' to ensure the 'source' command is available.
+                    sh 'bash -c "source \\"${VENV_PATH}/bin/activate\\" && pip install -r requirements.txt"'
                 }
             }
         }
@@ -47,8 +46,8 @@ pipeline {
                 script {
                     echo 'Running unit tests...'
                     // Activate the virtual environment and then run tests.
-                    // Ensure the virtual environment's python is used.
-                    sh 'source "${VENV_PATH}/bin/activate" && python3 -m unittest test_app.py'
+                    // We explicitly use 'bash -c' to ensure the 'source' command is available.
+                    sh 'bash -c "source \\"${VENV_PATH}/bin/activate\\" && python3 -m unittest test_app.py"'
                 }
             }
         }
@@ -62,7 +61,8 @@ pipeline {
                     // to use Minikube's Docker daemon. This means any 'docker' commands
                     // executed afterwards will build images directly into Minikube's
                     // internal Docker registry, making them available to Kubernetes.
-                    sh 'eval $(minikube docker-env)'
+                    // We explicitly use 'bash -c' here as well, as 'eval' is also a bash feature.
+                    sh 'bash -c "eval $(minikube docker-env)"'
 
                     // Build the Docker image.
                     // '-t python-ci-cd-app:latest' tags the image with a name and 'latest' tag.
