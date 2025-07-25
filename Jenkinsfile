@@ -12,6 +12,8 @@ pipeline {
         // Define the path for the virtual environment.
         // It's good practice to place it within the workspace.
         VENV_PATH = "${WORKSPACE}/venv"
+        // Add /usr/local/bin to PATH to ensure minikube and kubectl are found
+        PATH = "/usr/local/bin:${env.PATH}"
     }
 
     // The 'stages' block defines the different phases of your pipeline.
@@ -56,14 +58,20 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo 'Building Docker image...'
-                    // This command is crucial for Minikube. It configures the shell
-                    // to use Minikube's Docker daemon. This means any 'docker' commands
-                    // executed afterwards will build images directly into Minikube's
-                    // internal Docker registry, making them available to Kubernetes.
-                    // We explicitly use 'bash -c' here as well, as 'eval' is also a bash feature.
-                    sh 'bash -c "eval $(minikube docker-env)"'
+                    echo 'Checking Minikube status and setting Docker environment...'
+                    // Check if Minikube is running. If not, this step will fail.
+                    sh 'minikube status'
 
+                    // Set the Docker environment to point to Minikube's Docker daemon.
+                    // We use 'eval $(minikube docker-env)' to set environment variables.
+                    // The 'set -xe' ensures that the script exits immediately if any command fails.
+                    // We also capture the output of minikube docker-env to ensure it's valid.
+                    sh '''
+                        set -xe
+                        eval "$(minikube docker-env)"
+                    '''
+
+                    echo 'Building Docker image...'
                     // Build the Docker image.
                     // '-t python-ci-cd-app:latest' tags the image with a name and 'latest' tag.
                     // '.' indicates that the Dockerfile is in the current directory.
