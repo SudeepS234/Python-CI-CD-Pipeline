@@ -12,7 +12,8 @@ pipeline {
         // Define the path for the virtual environment.
         // It's good practice to place it within the workspace.
         VENV_PATH = "${WORKSPACE}/venv"
-        // Add /usr/local/bin to PATH to ensure minikube and kubectl are found
+        // Add /usr/local/bin to PATH to ensure minikube and kubectl are found.
+        // This is crucial if Jenkins's default PATH doesn't include it.
         PATH = "/usr/local/bin:${env.PATH}"
     }
 
@@ -54,22 +55,22 @@ pipeline {
             }
         }
 
-        // Stage 4: Build Docker Image - Create a Docker image of the application.
+        // Stage 4: Build Docker Image - Ensure Minikube is running, set Docker environment, and build image.
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo 'Checking Minikube status and setting Docker environment...'
-                    // Check if Minikube is running. If not, this step will fail.
-                    sh 'minikube status'
+                    echo 'Ensuring Minikube is running...'
+                    // Start Minikube. 'minikube start' is idempotent, meaning it will only
+                    // start if not already running, or ensure it's in a healthy state.
+                    // This command might take a few minutes on the first run or if it needs to restart.
+                    sh 'minikube start'
 
+                    echo 'Setting Docker environment to Minikube...'
                     // Set the Docker environment to point to Minikube's Docker daemon.
-                    // We use 'eval $(minikube docker-env)' to set environment variables.
-                    // The 'set -xe' ensures that the script exits immediately if any command fails.
-                    // We also capture the output of minikube docker-env to ensure it's valid.
-                    sh '''
-                        set -xe
-                        eval "$(minikube docker-env)"
-                    '''
+                    // This ensures that 'docker build' commands build images directly into
+                    // Minikube's internal Docker registry, making them available to Kubernetes.
+                    // We use 'bash -c' to ensure 'eval' is executed in a bash context.
+                    sh 'bash -c "eval $(minikube docker-env)"'
 
                     echo 'Building Docker image...'
                     // Build the Docker image.
