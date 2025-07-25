@@ -7,25 +7,18 @@ pipeline {
     // 'any' means Jenkins will run the pipeline on any available agent.
     agent any
 
-    // Define tools required for the pipeline.
-    // We specify a Python 3.9 installation. Ensure this is configured in Jenkins
-    // (Manage Jenkins -> Global Tool Configuration -> JDK and Python installations).
-    // If you don't have a specific Python installation configured in Jenkins,
-    // you might need to rely on the system's default Python or install it within the agent.
-    // For Dockerized Jenkins, you might need to ensure Python is installed inside the Jenkins container,
-    // or use a custom Jenkins agent image with Python pre-installed.
-    // For simplicity, we'll execute shell commands assuming Python is available.
-    // If your Jenkins container doesn't have Python, you might need to modify the Dockerfile for Jenkins
-    // or use a Jenkins agent with Python.
-    // For this basic setup, we'll assume the 'python3' command is available globally.
+    // Define environment variables for the virtual environment path
+    environment {
+        // Define the path for the virtual environment.
+        // It's good practice to place it within the workspace.
+        VENV_PATH = "${WORKSPACE}/venv"
+    }
 
     // The 'stages' block defines the different phases of your pipeline.
     stages {
         // Stage 1: Checkout - Get the latest code from the Git repository.
         stage('Checkout') {
             steps {
-                // 'checkout scm' checks out the code from the SCM (Source Code Management)
-                // configured in the Jenkins job (which is our GitHub repository).
                 script {
                     echo 'Checking out source code...'
                     checkout scm
@@ -33,27 +26,29 @@ pipeline {
             }
         }
 
-        // Stage 2: Build - Install Python dependencies.
-        stage('Build') {
+        // Stage 2: Setup Environment & Build - Create virtual environment and install dependencies.
+        stage('Setup Environment & Build') {
             steps {
                 script {
-                    echo 'Installing Python dependencies...'
-                    // Execute shell command to install dependencies from requirements.txt.
-                    // We use 'pip' directly here, assuming it's in the PATH.
-                    // If you have multiple Python versions, you might need 'pip3'.
-                    sh 'pip install -r requirements.txt'
+                    echo 'Creating Python virtual environment and installing dependencies...'
+                    // Create a virtual environment
+                    sh 'python3 -m venv "${VENV_PATH}"'
+                    // Activate the virtual environment and then install dependencies.
+                    // The 'source' command is for bash/zsh. For sh, it's often just '.'
+                    // We need to ensure the virtual environment's pip is used.
+                    sh 'source "${VENV_PATH}/bin/activate" && pip install -r requirements.txt'
                 }
             }
         }
 
-        // Stage 3: Test - Run unit tests for the Python application.
+        // Stage 3: Test - Run unit tests for the Python application within the virtual environment.
         stage('Test') {
             steps {
                 script {
                     echo 'Running unit tests...'
-                    // Execute shell command to run Python unit tests.
-                    // '-m unittest' runs the unittest module.
-                    sh 'python3 -m unittest test_app.py'
+                    // Activate the virtual environment and then run tests.
+                    // Ensure the virtual environment's python is used.
+                    sh 'source "${VENV_PATH}/bin/activate" && python3 -m unittest test_app.py'
                 }
             }
         }
